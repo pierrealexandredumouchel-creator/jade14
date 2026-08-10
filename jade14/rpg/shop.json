@@ -1,0 +1,6 @@
+[
+  {"item": "Épée de Ghost", "cost": 50, "atk": 10},
+  {"item": "Bouclier Mint", "cost": 75, "def": 15},
+  {"item": "Armure Box Rose", "cost": 120, "def": 25},
+  {"item": "Potion du Tunnel", "cost": 30, "heal": 50}
+]

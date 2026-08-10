@@ -1,0 +1,58 @@
+Ton bot va supporter :
+
+!ping → pong
+
+!hello → salut personnalisé
+
+!uptime → temps depuis le lancement
+
+!users → liste des users dans le channel
+
+!say <message> → le bot parle
+
+!op <nick> → demande OP (si tu es OP)
+
+!deop <nick>
+
+!topic <texte>
+
+!duckhunt → lance le jeu
+
+!shoot → tire sur le canard
+
+!score → montre ton score
+
+!resetduck → reset admin du jeu
+
+🟥 1. ADMIN COMMANDES — Ghost Royale Edition
+Tu vas avoir :
+
+✔ !admin add <nick>
+Ajoute un admin dans la liste
+
+✔ !admin del <nick>
+Retire un admin
+
+✔ !admin list
+Montre les admins
+
+✔ !kick <nick>
+Kick un user (si tu es OP)
+
+✔ !op <nick>
+Donne OP (si tu es OP)
+
+✔ !deop <nick>
+Retire OP
+
+✔ !topic <texte>
+Change le topic
+
+✔ !say <texte>
+Le bot parle dans le channel
+
+✔ !shutdown
+Le bot se déconnecte proprement
+
+✔ !resetduck
+Reset DUCKHUNT (admin only)

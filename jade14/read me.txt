@@ -1,0 +1,25 @@
+Ton bot va supporter :
+
+!ping → pong
+
+!hello → salut personnalisé
+
+!uptime → temps depuis le lancement
+
+!users → liste des users dans le channel
+
+!say <message> → le bot parle
+
+!op <nick> → demande OP (si tu es OP)
+
+!deop <nick>
+
+!topic <texte>
+
+!duckhunt → lance le jeu
+
+!shoot → tire sur le canard
+
+!score → montre ton score
+
+!resetduck → reset admin du jeu

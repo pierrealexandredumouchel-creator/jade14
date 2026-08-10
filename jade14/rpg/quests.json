@@ -1,0 +1,7 @@
+[
+  {"id": 1, "name": "Réparer Ghost", "reward": 50},
+  {"id": 2, "name": "Activer Mint Remote", "reward": 75},
+  {"id": 3, "name": "Stabiliser Box Rose", "reward": 100},
+  {"id": 4, "name": "Ouvrir les Portes XRDP", "reward": 150},
+  {"id": 5, "name": "Dominer Undernet Montréal", "reward": 200}
+]
