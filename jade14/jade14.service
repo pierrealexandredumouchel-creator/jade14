@@ -1,0 +1,22 @@
+[Unit]
+Description=Bot IRC jade14 (Undernet #montreal)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=jade14
+Group=jade14
+WorkingDirectory=/opt/jade14
+ExecStart=/opt/jade14/venv/bin/python3 /opt/jade14/jade14.py
+Restart=on-failure
+RestartSec=10
+
+# Petit durcissement de base (facultatif mais recommandé)
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

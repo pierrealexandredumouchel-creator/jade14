@@ -1,0 +1,9 @@
+{
+    "server": "irc.undernet.org",
+    "port": 6667,
+    "nick": "jade14",
+    "ident": "jade14",
+    "realname": "Ghost Royale Bot",
+    "channels": ["#kodi", "#montreal"],
+    "channel_password": "qpaptWUb"
+}

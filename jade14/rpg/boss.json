@@ -1,0 +1,6 @@
+[
+  {"name": "Spectre de Ghost", "hp": 500, "atk": 40, "reward": 150},
+  {"name": "Gardien de Mint", "hp": 650, "atk": 55, "reward": 200},
+  {"name": "Titan Box Rose", "hp": 900, "atk": 70, "reward": 300},
+  {"name": "Seigneur du Tunnel", "hp": 1200, "atk": 90, "reward": 500}
+]
