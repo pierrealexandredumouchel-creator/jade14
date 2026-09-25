@@ -1,0 +1,6 @@
+venv/
+__pycache__/
+*.pyc
+anya.db
+duck_scores.json
+duck_state.json
