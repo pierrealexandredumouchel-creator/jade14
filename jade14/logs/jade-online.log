@@ -1,27 +1,0 @@
-=== JADE ONLINE START ===
-[1] Restart Nginx
-=== JADE ONLINE START ===
-[1] Restart Nginx
-=== JADE ONLINE START ===
-[1] Restart Nginx
-[2] Restart Cloudflared
-[3] Restart Jade14 API
-[4] Test API
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0    17    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
-HTTP/2 530 
-date: Mon, 06 Jul 2026 17:25:53 GMT
-content-type: text/plain; charset=UTF-8
-content-length: 17
-cache-control: private, max-age=0, no-store, no-cache, must-revalidate, post-check=0, pre-check=0
-expires: Thu, 01 Jan 1970 00:00:01 GMT
-referrer-policy: same-origin
-x-frame-options: SAMEORIGIN
-server: cloudflare
-cf-ray: a1704fb25dd6d57a-DFW
-alt-svc: h3=":443"; ma=86400
-
-[5] Launch Undernet Bot jade13
-Jade14 connecté à Undernet.
-=== JADE ONLINE COMPLETE ===

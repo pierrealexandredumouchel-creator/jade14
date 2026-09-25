@@ -1,4 +1,3 @@
-import modules.youtube as youtube
 import json
 import socket
 import time
@@ -19,7 +18,6 @@ IDENT = cfg["ident"]
 REALNAME = cfg["realname"]
 CHANNELS = cfg["channels"]
 CHANNEL_PASSWORD = cfg.get("channel_password")
-BINDHOST = cfg.get("bindhost")
 
 
 class Jade14Bot:
@@ -51,68 +49,29 @@ class Jade14Bot:
         self.sock.send(f"{line.replace('PING', 'PONG', 1)}\r\n".encode())
 
     def connect(self):
+        # Un socket neuf à chaque tentative : un socket déjà utilisé pour
+        # une connexion coupée/échouée ne peut pas être réutilisé tel quel
+        # pour un nouveau connect() (ça lève une erreur au lieu de vraiment
+        # se reconnecter).
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         print(f"Connecting to Undernet ({SERVER}:{PORT})...")
-    
-        if BINDHOST:
-            family = socket.AF_INET6 if ":" in BINDHOST else socket.AF_INET
-            self.sock = socket.socket(family, socket.SOCK_STREAM)
-            self.sock.bind((BINDHOST, 0))
-            print(f"Binding to {BINDHOST}")
-    
-            addresses = socket.getaddrinfo(
-                SERVER,
-                PORT,
-                family,
-                socket.SOCK_STREAM,
-            )
-    
-            last_error = None
-            for _, socktype, proto, _, sockaddr in addresses:
-                try:
-                    self.sock.connect(sockaddr)
-                    print(f"Connected using {'IPv6' if family == socket.AF_INET6 else 'IPv4'}")
-                    break
-                except OSError as e:
-                    last_error = e
-            else:
-                self.sock.close()
-                self.sock = None
-                raise last_error
-    
-        else:
-            last_error = None
-            for family, socktype, proto, _, sockaddr in socket.getaddrinfo(
-                SERVER, PORT, socket.AF_UNSPEC, socket.SOCK_STREAM
-            ):
-                try:
-                    self.sock = socket.socket(family, socktype, proto)
-                    self.sock.connect(sockaddr)
-                    print(f"Connected using {'IPv6' if family == socket.AF_INET6 else 'IPv4'}")
-                    break
-                except OSError as e:
-                    last_error = e
-                    if self.sock:
-                        self.sock.close()
-                        self.sock = None
-            else:
-                raise last_error
-    
+        self.sock.connect((SERVER, PORT))
         self.sock.send(f"NICK {NICK}\r\n".encode())
         self.sock.send(f"USER {IDENT} 0 * :{REALNAME}\r\n".encode())
-    
+
         self._wait_for_welcome()
-    
+
         if CHANNEL_PASSWORD:
             self.sock.send(
                 f"PRIVMSG x@channels.undernet.org :LOGIN {NICK} {CHANNEL_PASSWORD}\r\n".encode()
             )
             time.sleep(2)
-    
+
         for chan in CHANNELS:
             self.sock.send(f"JOIN {chan}\r\n".encode())
-    
+
         print(f"Connecté à Undernet en tant que {NICK}.")
-    
+
     def _wait_for_welcome(self, timeout=30):
         """Attend le message 001 (connexion établie) avant de JOIN."""
         self.sock.settimeout(timeout)
@@ -120,7 +79,6 @@ class Jade14Bot:
         try:
             while True:
                 chunk = self.sock.recv(4096)
-                print(repr(chunk), flush=True)
                 if not chunk:
                     raise ConnectionError("Connexion fermée par le serveur IRC.")
                 buffer += chunk.decode("latin-1", errors="ignore")
