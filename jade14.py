@@ -19,6 +19,7 @@ IDENT = cfg["ident"]
 REALNAME = cfg["realname"]
 CHANNELS = cfg["channels"]
 CHANNEL_PASSWORD = cfg.get("channel_password")
+XLOGIN_ACCOUNT = cfg.get("xlogin_account", NICK)
 BINDHOST = cfg.get("bindhost")
 
 
@@ -104,9 +105,11 @@ class Jade14Bot:
     
         if CHANNEL_PASSWORD:
             self.sock.send(
-                f"PRIVMSG x@channels.undernet.org :LOGIN {NICK} {CHANNEL_PASSWORD}\r\n".encode()
+                f"PRIVMSG x@channels.undernet.org :LOGIN {XLOGIN_ACCOUNT} {CHANNEL_PASSWORD}\r\n".encode()
             )
             time.sleep(2)
+            self.sock.send(f"MODE {NICK} +x\r\n".encode())
+            time.sleep(1)
     
         for chan in CHANNELS:
             self.sock.send(f"JOIN {chan}\r\n".encode())
