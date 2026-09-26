@@ -5,6 +5,10 @@
     "ident": "jade14",
     "bindhost": "2001:470:b2af::2",
     "realname": "Ghost Royale Bot",
-    "channels": ["#kodi", "#montreal"],
-    "channel_password": "szi1V47x"
+    "channels": [
+        "#kodi",
+        "#montreal"
+    ],
+    "channel_password": "szi1V47x",
+    "xlogin_account": "jade13"
 }
