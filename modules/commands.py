@@ -60,10 +60,26 @@ def handle_command(bot, line):
 
         command_parts = msg.split()
 
+        # En privé, on répond à la personne plutôt qu'à Jade elle-même.
+        reply_to = chan if chan.startswith("#") else user
+
+        # Parler à travers Jade : !jade say|action #canal texte (maître seulement).
+        if len(command_parts) >= 4 and command_parts[1].casefold() in ("say", "action"):
+            destination = command_parts[2]
+            texte = " ".join(msg.split(" ", 3)[3].split())[:400]
+            if not re.fullmatch(r"#[^\x00\x07\r\n ,:]+", destination) or not texte:
+                bot.send(reply_to, "Usage: !jade say|action #canal texte")
+                return
+            if command_parts[1].casefold() == "say":
+                bot.send(destination, texte)
+            else:
+                bot.send(destination, "\x01ACTION " + texte + "\x01")
+            return
+
         if len(command_parts) != 3:
             bot.send(
                 chan,
-                "Usage: commande join|part #canal",
+                "Usage: !jade join|part #canal, ou !jade say|action #canal texte",
             )
             return
 
