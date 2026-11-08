@@ -8,7 +8,7 @@ LOG_DIR = BASE_DIR / "logs"
 OLLAMA_URL = "http://127.0.0.1:11434/api/generate"
 OLLAMA_MODEL = "llama3.1:latest"
 OLLAMA_TIMEOUT = 20
-OLLAMA_KEEP_ALIVE = "30m"
+OLLAMA_KEEP_ALIVE = -1
 
 MASTER_NICK = "alxd"
 

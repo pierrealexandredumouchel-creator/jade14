@@ -1,11 +1,56 @@
 import asyncio
+import difflib
+import json
 import re
 import time
+from pathlib import Path
 from collections import deque
 from dataclasses import dataclass
 
 from core.ollama_client import ollama_client
 from core.personas import load_persona, normalize_bot
+
+
+# --- Qui est qui : pseudos d'une même personne (fichier généré à partir des logs de Millie) ---
+IDENTITES = Path("/home/alxd/ghost-identites.json")
+_identites = {"mtime": 0.0, "data": {}}
+
+
+def identites():
+    try:
+        m = IDENTITES.stat().st_mtime
+        if m != _identites["mtime"]:
+            _identites["data"] = json.loads(IDENTITES.read_text(encoding="utf-8"))
+            _identites["mtime"] = m
+    except Exception:
+        pass
+    return _identites["data"]
+
+
+def qui_est_qui(nicks):
+    lignes, deja = [], set()
+    data = identites()
+    for n in nicks:
+        k = str(n).casefold()
+        if k in deja:
+            continue
+        deja.add(k)
+        info = data.get(k)
+        if not info:
+            continue
+        alias = [a for a in info.get("alias", []) if a.casefold() != k][:5]
+        texte = f"- {n}"
+        if info.get("personne") and info["personne"].casefold() != k:
+            texte += f" : c'est {info['personne']}"
+        if alias:
+            texte += f" (a aussi utilisé : {', '.join(alias)})"
+        if texte != f"- {n}":
+            lignes.append(texte)
+    if not lignes:
+        return ""
+    return ("Qui est qui (même personne derrière plusieurs pseudos ; sers-t'en pour reconnaître "
+            "les gens, mais ne dévoile jamais leurs autres pseudos sur le canal) :\n"
+            + "\n".join(lignes[:8]) + "\n\n")
 
 
 KNOWN_BOTS = {
@@ -45,6 +90,17 @@ FOLLOWUP_WORDS = (
 SECOND_PERSON = re.compile(r"\b(tu|toi|t['’]|ton|ta|tes|vous)\b", re.IGNORECASE)
 # « nick: » ou « nick, » au début = la personne parle à quelqu'un d'autre.
 ADDRESSED_TO = re.compile(r"^\s*@?([A-Za-z\[\]\\`_^{|}][\w\[\]\\`^{|}-]{0,29})\s*[:,]\s")
+# Liens web : le « ? » d'une URL YouTube n'est pas une question.
+URL = re.compile(r"(?:https?://|www\.)\S+", re.IGNORECASE)
+# Pseudos connus qui sont aussi des mots courants : jamais pris pour un pseudo
+# au début d'une phrase, sauf si la personne vient de parler.
+COMMON_WORDS = {
+    "donc", "gars", "homme", "jesus", "coffee", "search", "nuage", "rose", "roses",
+    "plume", "porc", "hungry", "chess", "bronze", "dry", "pan", "metoo", "okokok",
+    "oooooo", "yoooo", "yooooo", "wawawa", "helloo", "xxxx", "zzzzz",
+}
+# Premier mot du message, sans « : » (« GOa_uLD si tu fais... »).
+FIRST_WORD = re.compile(r"^\s*@?([A-Za-z\[\]\\`_^{|}][\w\[\]\\`^{|}-]{2,29})(?=[\s!?.]|$)")
 
 
 @dataclass
@@ -69,6 +125,7 @@ class GhostBrain:
         self._channel_size = int(channel_lines)
         self._locks = {}
         self._waiting = {}
+        self._last_replies = {}
 
     @staticmethod
     def clean(text, limit=900):
@@ -132,6 +189,30 @@ class GhostBrain:
             return False
         return conversation.owner.casefold() == str(nick).casefold()
 
+    def strip_urls(self, text):
+        return " ".join(URL.sub(" ", str(text)).split())
+
+    def known_nicks(self, target):
+        """Pseudos qui ont parlé récemment + pseudos connus de ghost-identites.json."""
+        buf = self._channels.get(str(target).casefold(), ())
+        known = {n.casefold() for (_, n, _) in buf}
+        known.update(str(k).casefold() for k in identites())
+        return known
+
+    def starts_with_other_nick(self, target, text, names):
+        """« GOa_uLD si tu fais... » : le message commence par le pseudo de
+        quelqu'un d'autre, même sans « : »."""
+        m = FIRST_WORD.match(self.strip_urls(text))
+        if not m:
+            return False
+        who = m.group(1).casefold()
+        if who in {n.casefold() for n in names}:
+            return False
+        buf = self._channels.get(str(target).casefold(), ())
+        if who in COMMON_WORDS and who not in {n.casefold() for (_, n, _) in buf}:
+            return False
+        return who in self.known_nicks(target)
+
     def talking_to_other(self, target, text, names):
         """Vrai si le message commence par « pseudo: » / « pseudo, » et que ce
         pseudo est quelqu'un d'autre qui a parlé récemment dans le canal.
@@ -162,10 +243,13 @@ class GhostBrain:
             return False
 
         text = self.clean(message, 300)
+        # Un lien seul n'est pas une suite de conversation, et son « ? » ne compte pas.
+        text = self.strip_urls(text)
         lowered = text.casefold()
 
-        # Parle à quelqu'un d'autre (« bob: ... ») : on se tait.
-        if self.talking_to_other(target, text, {bot_name, normalize_bot(bot_name)}):
+        # Parle à quelqu'un d'autre (« bob: ... » ou « bob si tu... ») : on se tait.
+        names = {bot_name, normalize_bot(bot_name)}
+        if self.talking_to_other(target, text, names) or self.starts_with_other_nick(target, text, names):
             return False
 
         if not lowered or lowered in {"lol", "haha", "mdr", "ok", "k", "xd", ":p", ":)"}:
@@ -192,6 +276,7 @@ class GhostBrain:
             f"Discussion récente dans {where}, du plus ancien au plus récent "
             "(contexte seulement : ne réponds pas à ces lignes-là) :\n"
             f"{history}\n\n"
+            + qui_est_qui([nick] + [n for n, _ in context]) +
             f"Message de {nick} auquel tu réponds maintenant (c'est LUI ta question) :\n"
             f"{nick}: {text}\n\n"
             f"Les lignes de « {bot_name} » sont tes propres réponses précédentes.\n"
@@ -215,15 +300,55 @@ class GhostBrain:
             "1 à 3 phrases."
         )
 
+    repeat_seconds = 600
+    repeat_ratio = 0.7
+
+    def is_repeat(self, bot_name, target, reply):
+        """Vrai si le bot a déjà dit presque la même chose dans ce canal
+        dans les 10 dernières minutes. Sinon, retient la réponse."""
+        key = self.conversation_key(bot_name, target)
+        now = time.monotonic()
+        recent = [
+            (ts, old) for (ts, old) in self._last_replies.get(key, ())
+            if now - ts <= self.repeat_seconds
+        ]
+        new = reply.casefold()
+        # Les réponses courtes (« Oui ! ») peuvent revenir sans problème.
+        if len(new) < 25:
+            return False
+        for _, old in recent:
+            a, b = old.casefold(), new
+            if a in b or b in a or difflib.SequenceMatcher(None, a, b).ratio() >= self.repeat_ratio:
+                self._last_replies[key] = recent
+                return True
+        self._last_replies[key] = (recent + [(now, reply)])[-5:]
+        return False
+
     def remember_reply(self, bot_name, nick, target, reply, bot_nick=None):
         self.activate(bot_name, target, nick)
         self.observe(target, bot_nick or normalize_bot(bot_name), reply)
+
+    attente_suite = 8
 
     async def ask(self, bot_name, nick, target, message, bot_nick=None):
         if self.is_bot(nick):
             return None
 
         normalized = normalize_bot(bot_name)
+
+        # Juste le nom du bot (« anya », « Tanya24_ ? ») : la vraie question arrive
+        # souvent sur les lignes suivantes. On attend un peu et on les regroupe.
+        nom = re.sub(r"[\W_\d]+", "", normalized.casefold())
+        reste = re.sub(r"[\W_\d]+", "", str(message).casefold()).replace(nom, "", 1)
+        if len(reste) < 3 and str(target).startswith("#"):
+            depart = time.monotonic()
+            await asyncio.sleep(self.attente_suite)
+            suite = [
+                t for (ts, n, t) in list(self._channels.get(str(target).casefold(), ()))
+                if ts > depart and n.casefold() == str(nick).casefold()
+            ]
+            if suite:
+                message = " ".join([str(message)] + suite)
         key = self.conversation_key(normalized, target)
         lock = self._locks.setdefault(key, asyncio.Lock())
 
@@ -262,6 +387,10 @@ class GhostBrain:
 
         # Le modèle commence parfois par « Tanya24: » ou « nick: ».
         speaker = re.escape(re.sub(r"\d+_?$", "", normalized))   # « tanya24 » -> « tanya »
+        # Le modèle entoure parfois sa réplique de guillemets ou de **gras** : on enlève l'emballage.
+        reply = re.sub(r"^[\s«“\"'*_]+", "", reply)
+        reply = re.sub(r"[\s»”\"*_]+$", "", reply)
+        reply = re.sub(r"\*\*|__", "", reply)
         reply = re.sub(r"^\s*(" + speaker + r"\w*|" + re.escape(str(nick)) + r")\s*:\s*", "", reply, flags=re.IGNORECASE)
         # « Alxd_sa_csst ! ... » / « Ikce, ... » : le pseudo est déjà mis devant par le bot.
         reply = re.sub(r"^\s*@?" + re.escape(str(nick)) + r"\s*[!,.:]+\s*", "", reply, flags=re.IGNORECASE)
@@ -271,6 +400,9 @@ class GhostBrain:
         stripped = re.sub(r"^\s*ben\b(?:\s+(?:oui|non|quoi|là|voyons))?\s*[,!.…]*\s*", "", reply, flags=re.IGNORECASE)
         if stripped and stripped != reply:
             reply = stripped[0].upper() + stripped[1:]
+
+        if reply and self.is_repeat(normalized, target, reply):
+            return None
 
         if reply:
             self.remember_reply(normalized, nick, target, reply, bot_nick=bot_nick)
