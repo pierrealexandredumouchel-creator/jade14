@@ -303,6 +303,12 @@ class Jade14Bot:
         hostmask = str(hostmask).casefold()
 
         trusted = {
+            "te[u]k": (
+                "@teuk.users.undernet.org",
+            ),
+            "te[u]k`": (
+                "@teuk.users.undernet.org",
+            ),
             "alxd": (
                 "@alxd.kekistan.faith",
                 "@alerion.users.undernet.org",
