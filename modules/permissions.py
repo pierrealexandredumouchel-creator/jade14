@@ -16,10 +16,15 @@ MASTERS = {
         "alxd99.users.undernet.org",
     ),
     # Chums de #montreal nommés maîtres par alxd (2026-11-18).
-    # Hôtes à remplir : tant que c'est vide, ils n'ont pas accès.
-    "ikce": (),
-    "simon": (),
-    "sid": (),
+    # Hôtes tirés de leur /whois du 2026-11-18.
+    "ikce": ("fuel.xnerf.org",),
+    "simon": (
+        "patapon.lol",
+        "simonpatapon.users.undernet.org",  # compte X simonpatapon (+x)
+    ),
+    # SiD utilise souvent « SiD` » (avec l'accent grave).
+    "sid": ("sid.freespeech.club",),
+    "sid`": ("sid.freespeech.club",),
 }
 
 ADMINFILE = os.path.join(os.path.dirname(__file__), "admins.json")
