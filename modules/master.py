@@ -44,7 +44,8 @@ def handle(bot, nick, hostmask, target, msg):
 
         return True
 
-    if msg.startswith("!say "):
+    # « !say #canal texte » seulement : « !say texte » reste à la commande du canal.
+    if msg.startswith("!say #"):
 
         parts = msg.split(" ", 2)
 

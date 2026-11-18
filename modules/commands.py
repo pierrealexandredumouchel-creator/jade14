@@ -1,6 +1,6 @@
 import re
 from modules.master import handle as ghost_handle
-from modules.admin import add_admin, is_admin, list_admins
+from modules.permissions import is_master, master_nicks
 from modules.duckhunt import reset_duck, score, shoot, spawn_duck
 
 
@@ -9,6 +9,7 @@ def handle_command(bot, line):
     user = parts[0].split("!")[0].replace(":", "")
     chan = parts[2]
     msg = " ".join(parts[3:]).replace(":", "", 1)
+    hostmask = parts[0][1:]
 
     class GhostAdapter:
         def __init__(self, bot):
@@ -24,7 +25,7 @@ def handle_command(bot, line):
     if ghost_handle(
         GhostAdapter(bot),
         user,
-        user,
+        hostmask,
         chan,
         msg
     ):
@@ -37,19 +38,7 @@ def handle_command(bot, line):
     )
 
     if msg.casefold().startswith(target_prefixes):
-        hostmask = parts[0][1:]
-        host_lower = hostmask.casefold()
-
-        owner_ok = (
-            user.casefold() == "alxd"
-            and (
-                "@alxd.kekistan.faith"
-                in host_lower
-                or
-                "@alerion.users.undernet.org"
-                in host_lower
-            )
-        )
+        owner_ok = is_master(user, hostmask)
 
         if not owner_ok:
             bot.send(
@@ -135,7 +124,7 @@ def handle_command(bot, line):
 
     if msg.startswith("!say "):
         # Réservé aux admins : sinon n'importe qui fait dire n'importe quoi à Jade.
-        if not is_admin(user):
+        if not is_master(user, hostmask):
             bot.send(chan, f"{user}: Tu n'es pas admin.")
             return
         bot.send(chan, msg[5:])
@@ -150,24 +139,19 @@ def handle_command(bot, line):
         score(bot, user, chan)
 
     if msg.startswith("!resetduck"):
-        if not is_admin(user):
+        if not is_master(user, hostmask):
             bot.send(chan, f"{user}: Tu n'es pas admin.")
             return
         reset_duck(bot, chan)
 
     if msg.startswith("!addadmin"):
-        if not is_admin(user):
+        if not is_master(user, hostmask):
             bot.send(chan, f"{user}: Tu n'es pas admin.")
             return
 
-        try:
-            new_admin = msg.split(" ")[1]
-            if add_admin(new_admin):
-                bot.send(chan, f"Admin ajouté: {new_admin}")
-            else:
-                bot.send(chan, f"{new_admin} est déjà admin.")
-        except IndexError:
-            bot.send(chan, "Usage: !addadmin <nick>")
+        # Les maîtres se configurent avec leur hôte dans modules/permissions.py :
+        # un pseudo seul, ajouté par IRC, se volerait trop facilement.
+        bot.send(chan, f"{user}: les maîtres s'ajoutent dans modules/permissions.py (pseudo + hôte).")
 
     if msg.startswith("!admins"):
-        bot.send(chan, "Admins: " + list_admins())
+        bot.send(chan, "Maîtres: " + (", ".join(master_nicks()) or "aucun"))
